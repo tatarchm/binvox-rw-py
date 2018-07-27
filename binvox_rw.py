@@ -62,6 +62,7 @@ True
 """
 
 import numpy as np
+import struct
 
 class Voxels(object):
     """ Holds a binvox model.
@@ -244,11 +245,11 @@ def write(voxel_model, fp):
     else:
         dense_voxel_data = voxel_model.data
 
-    fp.write('#binvox 1\n')
-    fp.write('dim '+' '.join(map(str, voxel_model.dims))+'\n')
-    fp.write('translate '+' '.join(map(str, voxel_model.translate))+'\n')
-    fp.write('scale '+str(voxel_model.scale)+'\n')
-    fp.write('data\n')
+    fp.write('#binvox 1\n'.encode())
+    fp.write(('dim '+' '.join(map(str, voxel_model.dims))+'\n').encode())
+    fp.write(('translate '+' '.join(map(str, voxel_model.translate))+'\n').encode())
+    fp.write(('scale '+str(voxel_model.scale)+'\n').encode())
+    fp.write('data\n'.encode())
     if not voxel_model.axis_order in ('xzy', 'xyz'):
         raise ValueError('Unsupported voxel model axis order')
 
@@ -259,25 +260,23 @@ def write(voxel_model, fp):
 
     # keep a sort of state machine for writing run length encoding
     state = voxels_flat[0]
+    print(state)
     ctr = 0
     for c in voxels_flat:
         if c==state:
             ctr += 1
-            # if ctr hits max, dump
             if ctr==255:
-                fp.write(chr(state))
-                fp.write(chr(ctr))
+                fp.write(struct.pack('B', state))
+                fp.write(struct.pack('B', ctr))
                 ctr = 0
         else:
-            # if switch state, dump
-            fp.write(chr(state))
-            fp.write(chr(ctr))
+            fp.write(struct.pack('B', state))
+            fp.write(struct.pack('B', ctr))
             state = c
             ctr = 1
-    # flush out remainders
     if ctr > 0:
-        fp.write(chr(state))
-        fp.write(chr(ctr))
+        fp.write(struct.pack('B', state))
+        fp.write(struct.pack('B', ctr))
 
 if __name__ == '__main__':
     import doctest
